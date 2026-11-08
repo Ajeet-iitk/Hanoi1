@@ -1,0 +1,239 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tower of Hanoi</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 20px;
+    background-color: #f4f4f9;
+    color: #333;
+  }
+  h1 {
+    margin-bottom: 20px;
+    color: #444;
+  }
+  .game-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+  }
+  .tower {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 20px;
+    position: relative;
+    cursor: pointer;
+  }
+  .rod {
+    width: 10px;
+    height: 250px;
+    background-color: #2c3e50;
+    margin: 0 auto;
+    transition: background-color 0.3s;
+    border-radius: 5px;
+  }
+  .disk {
+    height: 20px;
+    margin: 5px auto;
+    border-radius: 5px;
+    position: absolute;
+    transition: background-color 0.3s;
+  }
+  .selected-disk {
+    background-color: #e74c3c !important;
+  }
+  .highlighted .rod {
+    background-color: #3498db;
+  }
+  #controls {
+    margin-top: 30px;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 16px;
+    margin: 5px;
+    border: none;
+    border-radius: 5px;
+    background-color: #3498db;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  button:hover {
+    background-color: #2980b9;
+  }
+  #move-counter {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #555;
+  }
+  #disc-controls {
+    margin-top: 30px;
+  }
+  #message {
+    margin-top: 20px;
+    font-size: 18px;
+    color: #e74c3c;
+  }
+</style>
+</head>
+<body>
+
+<h1>Tower of Hanoi</h1>
+<div class="game-container" id="game">
+  <div class="tower" id="tower1" onclick="selectTower(1)">
+    <div class="rod"></div>
+  </div>
+  <div class="tower" id="tower2" onclick="selectTower(2)">
+    <div class="rod"></div>
+  </div>
+  <div class="tower" id="tower3" onclick="selectTower(3)">
+    <div class="rod"></div>
+  </div>
+</div>
+<p id="move-counter">Moves: 0</p>
+<p id="message"></p>
+<div id="controls">
+  <button onclick="resetGame()">Reset Game</button>
+</div>
+<div id="disc-controls">
+  <button onclick="changeDiscCount(-1)">Decrease Discs</button>
+  <span id="disc-count">3</span>
+  <button onclick="changeDiscCount(1)">Increase Discs</button>
+</div>
+
+<script>
+let towers = [[3, 2, 1], [], []]; // Initial disks setup (Tower 1 has 3 disks)
+let selectedDisk = null;
+let sourceTowerIndex = null;
+let moveCount = 0;
+let discCount = 3;
+
+function renderTowers() {
+  const towerElements = document.querySelectorAll('.tower');
+  towerElements.forEach((towerElement, index) => {
+    const tower = towers[index];
+    const rod = towerElement.querySelector('.rod');
+    towerElement.innerHTML = ''; // Clear the tower
+    towerElement.appendChild(rod); // Add rod back
+
+    tower.forEach((diskSize, diskIndex) => {
+      const disk = document.createElement('div');
+      disk.className = 'disk';
+      disk.style.width = `${diskSize * 20}px`;
+      disk.style.backgroundColor = `hsl(${diskSize * 40}, 70%, 50%)`;
+      disk.style.bottom = `${diskIndex * 25 + 10}px`;
+      disk.style.left = `50%`;
+      disk.style.transform = `translateX(-50%)`;
+      disk.setAttribute('data-tower', index);
+      disk.setAttribute('data-index', diskIndex);
+      towerElement.appendChild(disk);
+    });
+  });
+}
+
+function highlightTower(towerIndex) {
+  const towerElements = document.querySelectorAll('.tower');
+  towerElements.forEach((towerElement, index) => {
+    if (index === towerIndex - 1) {
+      towerElement.classList.add('highlighted');
+    } else {
+      towerElement.classList.remove('highlighted');
+    }
+  });
+}
+
+function selectTower(towerIndex) {
+  if (selectedDisk !== null) {
+    // If a disk is already selected, move it to the new tower
+    const destinationTowerIndex = towerIndex - 1;
+
+    if (sourceTowerIndex === destinationTowerIndex) {
+      document.getElementById('message').textContent = 'You must select a different tower to move the disk.';
+      return;
+    }
+
+    const sourceTower = towers[sourceTowerIndex];
+    const destinationTower = towers[destinationTowerIndex];
+
+    if (destinationTower.length === 0 || destinationTower[destinationTower.length - 1] > sourceTower[sourceTower.length - 1]) {
+      const diskSize = sourceTower.pop();
+      destinationTower.push(diskSize);
+      selectedDisk = null;
+      sourceTowerIndex = null;
+      moveCount++;
+      updateMoveCounter();
+      document.getElementById('message').textContent = '';
+      renderTowers();
+      checkWin();
+    } else {
+      document.getElementById('message').textContent = 'Invalid move! Destination disk must be larger than the source disk.';
+      selectedDisk = null;
+      sourceTowerIndex = null;
+    }
+    highlightTower(null); // Remove highlight after move
+  } else {
+    // Select the topmost disk of the clicked tower
+    const tower = towers[towerIndex - 1];
+    if (tower.length > 0) {
+      selectedDisk = tower[tower.length - 1];
+      sourceTowerIndex = towerIndex - 1;
+      document.getElementById('message').textContent = `Selected disk from Tower ${towerIndex}. Click on another tower to move it.`;
+      highlightTower(towerIndex); // Highlight the selected tower
+    } else {
+      document.getElementById('message').textContent = 'No disks available to move from this tower.';
+    }
+  }
+}
+
+function checkWin() {
+  if (towers[2].length === discCount) {
+    document.getElementById('message').textContent = 'Congratulations! You solved the Tower of Hanoi!';
+  }
+}
+
+function resetGame() {
+  towers = [Array.from({ length: discCount }, (_, i) => discCount - i), [], []];
+  selectedDisk = null;
+  sourceTowerIndex = null;
+  moveCount = 0;
+  updateMoveCounter();
+  document.getElementById('message').textContent = '';
+  renderTowers();
+  highlightTower(null); // Ensure no tower is highlighted after reset
+}
+
+function changeDiscCount(change) {
+  let newDiscCount = discCount + change;
+  if (newDiscCount < 3) {
+    document.getElementById('message').textContent = 'Minimum number of discs is 3.';
+    return;
+  }
+  if (newDiscCount > 8) {
+    document.getElementById('message').textContent = 'Maximum number of discs is 8.';
+    return;
+  }
+  discCount = newDiscCount;
+  document.getElementById('disc-count').textContent = discCount;
+  resetGame();
+}
+
+function updateMoveCounter() {
+  document.getElementById('move-counter').textContent = `Moves: ${moveCount}`;
+}
+
+// Initial render
+renderTowers();
+updateMoveCounter();
+</script>
+
+</body>
+</html>
+```
